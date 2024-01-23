@@ -1,0 +1,5 @@
+(library
+ (name redis)
+ (preprocess
+  (pps bytestring.ppx))
+ (libraries trail nomad mirage-crypto-rng.unix angstrom blink yojson))

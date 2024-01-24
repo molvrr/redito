@@ -1,5 +1,3 @@
-[@@@warning "-20..70"]
-
 open Riot
 
 let handler _ = Format.printf "Got a message\n%!"
@@ -13,10 +11,6 @@ let () =
   let pid = Result.get_ok @@ Redito.start_link uri in
   ignore @@ Redito.subscribe ~pid handler "jojo";
   ignore @@ Redito.subscribe ~pid handler "mob_psycho";
-  ignore @@ Redito.set ~pid "name" "Mob Psycho";
   ignore @@ Redito.set ~opts:[ `EX 5 ] ~pid "name" "Mob Psycho";
-  Format.printf "A chave \"name\" vai expirar em %d segundos\n%!"
-  @@ Option.get
-  @@ Redito.ttl ~pid "name";
   wait_pids [ pid ]
 ;;

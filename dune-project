@@ -1,22 +1,22 @@
 (lang dune 3.13)
 
-(name lstack)
+(name redito)
 
 (generate_opam_files true)
 
 (source
- (github username/reponame))
+ (github molvrr/redito))
 
-(authors "Author Name")
+(authors "Mateus Cruz")
 
-(maintainers "Maintainer Name")
+(maintainers "Mateus Cruz")
 
 (license LICENSE)
 
 (documentation https://url/to/documentation)
 
 (package
- (name lstack)
+ (name redito)
  (synopsis "A short synopsis")
  (description "A longer description")
  (depends ocaml dune)

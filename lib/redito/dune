@@ -1,5 +1,3 @@
 (library
  (name redito)
- (preprocess
-  (pps bytestring.ppx))
- (libraries trail nomad mirage-crypto-rng.unix angstrom blink yojson))
+ (libraries angstrom riot))

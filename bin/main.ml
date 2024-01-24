@@ -13,8 +13,7 @@ let () =
   ignore @@ Redito.subscribe ~pid handler "mob_psycho";
   ignore @@ Redito.set ~pid "name" "Mob Psycho";
   ignore @@ Redito.set ~opts:[ `EX 5 ] ~pid "name" "Mob Psycho";
-  Option.iter (fun timeout ->
-    Format.printf "A chave \"name\" vai expirar em %d segundos\n%!" timeout)
+  Option.iter (Format.printf "A chave \"name\" vai expirar em %d segundos\n%!")
   @@ Redito.ttl ~pid "name";
   wait_pids [ pid ]
 ;;

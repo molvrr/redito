@@ -97,6 +97,7 @@ let parse_redis_reply r () =
     | Angstrom.Buffered.Done (_, v) -> Ok v
     | Angstrom.Buffered.Partial continue ->
       let* str = Bytestring.with_bytes (fun buf -> IO.read ~buf r) in
+      yield ();
       helper @@ continue @@ `String (Bytestring.to_string str)
     | Angstrom.Buffered.Fail _ -> Error `Response_parsing_error
   in

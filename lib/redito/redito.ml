@@ -136,7 +136,7 @@ module Server = struct
              Mas vamos fazer assim por enquanto.
 
              É possível também enviar as mensagens através da conexão ocupada,
-             supondo que ela está ocupada por que entramos no subscribe mode.
+             supondo que ela está ocupada porque entramos no subscribe mode.
           *)
           let new_conn = connect uri () in
           Plumbing.subscribe ~conn:new_conn ~f channel

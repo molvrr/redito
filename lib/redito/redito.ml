@@ -1,6 +1,13 @@
 open Riot
 module GenServer = Gen_server
 
+module Logger = Logger.Make (struct
+    let namespace = [ "redito" ]
+  end)
+
+let debug = Logger.debug
+let error = Logger.error
+
 type connection = Plumbing.connection
 type message = Plumbing.message
 
@@ -80,11 +87,11 @@ module Plumbing = struct
       match data with
       | Ok (`Array [ str; `BulkString c; `BulkString "message" ]) when String.equal c chan
         ->
-        Logger.debug (fun m -> m "#%s: %S" chan (Plumbing.serialize_message str));
+        debug (fun m -> m "#%s: %S" chan (Plumbing.serialize_message str));
         f str;
         helper f ()
       | Ok msg ->
-        Logger.debug (fun m -> m "#%s: %S" chan (Plumbing.serialize_message msg));
+        debug (fun m -> m "#%s: %S" chan (Plumbing.serialize_message msg));
         helper f ()
       | Error _ -> ()
     in
@@ -93,10 +100,10 @@ module Plumbing = struct
     match msg with
     | Ok (`Array [ `Integer 1; `BulkString c; `BulkString "subscribe" ])
       when String.equal c chan ->
-      Logger.debug (fun m -> m "Subscribed successfully to channel %s" chan);
+      debug (fun m -> m "Subscribed successfully to channel %s" chan);
       helper f ()
-    | Ok msg -> Logger.debug (fun m -> m "%s" @@ Plumbing.serialize_message msg)
-    | Error _ -> Logger.error (fun m -> m "Error subscribing to channel %s" chan)
+    | Ok msg -> debug (fun m -> m "%s" @@ Plumbing.serialize_message msg)
+    | Error _ -> error (fun m -> m "Error subscribing to channel %s" chan)
   ;;
 end
 
@@ -121,6 +128,7 @@ module Server = struct
 
     let handle_call : type res. res GenServer.req -> Pid.t -> state -> res * state =
       fun req _from { conn; uri } ->
+      debug (fun m -> m "Redito.handle_call called");
       match req with
       | Set (key, value, opts) ->
         let has_set = Plumbing.set ~opts ~conn key value in

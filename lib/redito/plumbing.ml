@@ -1,5 +1,11 @@
 open Riot
 
+module Logger = Logger.Make (struct
+    let namespace = [ "redito.plumbing" ]
+  end)
+
+let debug = Logger.debug
+
 type message =
   [ `Array of message list
   | `BulkString of string
@@ -62,7 +68,7 @@ module Parser = struct
     >>= fun c -> count c self >>= fun l -> return (`Array (List.rev l))
   ;;
 
-  let p : message t =
+  let p =
     fix
     @@ fun self ->
     simple_string <|> simple_error <|> bulk_string <|> integer <|> array self
@@ -92,6 +98,7 @@ let rec serialize_message : message -> string = function
 let ( let* ) = Result.bind
 
 let parse_redis_reply r () =
+  debug (fun m -> m "Parsing reply");
   let rec helper state =
     match state with
     | Angstrom.Buffered.Done (_, v) -> Ok v

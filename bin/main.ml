@@ -2,8 +2,9 @@ open Riot
 module GenServer = Gen_server
 
 type _ GenServer.req +=
-  | Set : string * string -> bool GenServer.req
+  | Set : string * string * [ `EX of int ] list -> bool GenServer.req
   | Subscribe : string * (Redis.message -> unit) -> Pid.t GenServer.req
+  | TTL : string -> int option GenServer.req
 
 type args = Uri.t
 
@@ -22,8 +23,8 @@ module Redito = struct
     let handle_call : type res. res GenServer.req -> Pid.t -> state -> res * state =
       fun req _from { conn; uri } ->
       match req with
-      | Set (key, value) ->
-        let has_set = Redis.set ~conn key value in
+      | Set (key, value, opts) ->
+        let has_set = Redis.set ~opts ~conn key value in
         has_set, { conn; uri }
       | Subscribe (channel, f) ->
         let pid =
@@ -42,6 +43,9 @@ module Redito = struct
           Redis.subscribe ~conn:new_conn ~f channel
         in
         pid, { conn; uri }
+      | TTL key ->
+        let timeout = Redis.ttl ~conn key in
+        timeout, { conn; uri }
     [@@warning "-8"]
     ;;
 
@@ -49,8 +53,9 @@ module Redito = struct
   end
 
   let start_link uri = GenServer.start_link (module Server) uri
-  let set pid key value = GenServer.call pid (Set (key, value))
-  let subscribe ~handler pid channel = GenServer.call pid (Subscribe (channel, handler))
+  let set ?(opts = []) ~pid key value = GenServer.call pid (Set (key, value, opts))
+  let subscribe ~pid handler channel = GenServer.call pid (Subscribe (channel, handler))
+  let ttl ~pid key = GenServer.call pid (TTL key)
 end
 
 let handler _ = Format.printf "Got a message\n%!"
@@ -62,8 +67,12 @@ let () =
   Logger.set_log_level (Some Debug);
   let uri = Uri.of_string "redis://127.0.0.1" in
   let pid = Result.get_ok @@ Redito.start_link uri in
-  ignore @@ Redito.subscribe ~handler pid "jojo";
-  ignore @@ Redito.subscribe ~handler pid "mob_psycho";
-  ignore @@ Redito.set pid "name" "Mob Psycho";
+  ignore @@ Redito.subscribe ~pid handler "jojo";
+  ignore @@ Redito.subscribe ~pid handler "mob_psycho";
+  ignore @@ Redito.set ~pid "name" "Mob Psycho";
+  ignore @@ Redito.set ~opts:[ `EX 5 ] ~pid "name" "Mob Psycho";
+  Option.iter (fun timeout ->
+    Format.printf "A chave \"name\" vai expirar em %d segundos\n%!" timeout)
+  @@ Redito.ttl ~pid "name";
   wait_pids [ pid ]
 ;;

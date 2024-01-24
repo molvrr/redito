@@ -1,6 +1,6 @@
 (executable
- (public_name redinho)
+ (public_name main)
  (name main)
  (preprocess
   (pps bytestring.ppx))
- (libraries redis trail nomad mirage-crypto-rng.unix angstrom blink yojson))
+ (libraries redito trail nomad mirage-crypto-rng.unix angstrom blink yojson))

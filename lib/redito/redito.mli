@@ -4,6 +4,7 @@ type connection
 type message
 
 val connect : Uri.t -> unit -> Plumbing.connection
+val serialize_message : message -> string
 
 module Server : sig
   type _ GenServer.req +=

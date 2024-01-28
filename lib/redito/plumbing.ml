@@ -13,6 +13,9 @@ type message =
   | `NullString
   | `SimpleError of string
   | `SimpleString of string
+  | `BigNumber of int
+  | `Bool of bool
+  | `Null
   ]
 
 type connection =
@@ -36,16 +39,20 @@ module Parser = struct
   let digits = take_while1 is_digit >>| int_of_string
   let eol = string "\r\n"
 
-  let integer =
+  let sign =
     let plus = char '+' *> return `Pos in
     let minus = char '-' *> return `Neg in
     let sign_to_int = function
       | `Pos -> 1
       | `Neg -> -1
     in
+    plus <|> minus >>| sign_to_int
+  ;;
+
+  let integer =
     let sign_and_n = return (fun card n -> card * n) in
     sign_and_n
-    <*> char ':' *> option 1 (plus <|> minus >>| sign_to_int)
+    <*> char ':' *> option 1 sign
     <*> (digits <* eol)
     >>= fun n -> return @@ `Integer n
   ;;
@@ -63,15 +70,37 @@ module Parser = struct
   ;;
 
   let array self =
-    char '*' *> digits
+    let len = char '*' *> digits <* eol in
+    len >>= fun c -> count c self >>= fun l -> return (`Array (List.rev l))
+  ;;
+
+  let null = string "_\r\n" *> return `Null
+
+  let boolean =
+    let true_p = char 't' *> return (`Bool true) in
+    let false_p = char 't' *> return (`Bool false) in
+    char '#' *> (true_p <|> false_p)
+  ;;
+
+  let big_number =
+    return (fun c n -> c * n)
+    <*> char '(' *> sign
+    <*> digits
     <* eol
-    >>= fun c -> count c self >>= fun l -> return (`Array (List.rev l))
+    >>= fun n -> return @@ `BigNumber n
   ;;
 
   let p =
     fix
     @@ fun self ->
-    simple_string <|> simple_error <|> bulk_string <|> integer <|> array self
+    simple_string
+    <|> simple_error
+    <|> bulk_string
+    <|> integer
+    <|> array self
+    <|> null
+    <|> boolean
+    <|> big_number
   ;;
 end
 [@@warning "-20..70"]
@@ -83,7 +112,12 @@ let rec serialize_message : message -> string = function
     Format.sprintf "$%d\r\n%s\r\n" len string
   | `Integer int ->
     if int < 0 then Format.sprintf ":-%d\r\n" int else Format.sprintf ":+%d\n" int
+  | `BigNumber int ->
+    if int < 0 then Format.sprintf ":-%d\r\n" int else Format.sprintf ":+%d\n" int
   | `SimpleError string -> Format.sprintf "+%s\r\n" string
+  | `Bool true -> "#t\r\n"
+  | `Bool false -> "#f\r\n"
+  | `Null -> "_\r\n"
   | `SimpleString string -> Format.sprintf "-%s\r\n" string
   | `Array el ->
     let len, elements =
@@ -104,7 +138,6 @@ let parse_redis_reply r () =
     | Angstrom.Buffered.Done (_, v) -> Ok v
     | Angstrom.Buffered.Partial continue ->
       let* str = Bytestring.with_bytes (fun buf -> IO.read ~buf r) in
-      yield ();
       helper @@ continue @@ `String (Bytestring.to_string str)
     | Angstrom.Buffered.Fail _ -> Error `Response_parsing_error
   in
@@ -112,6 +145,7 @@ let parse_redis_reply r () =
   helper state
 ;;
 
+(* TODO: Enviar um HELLO para fazer o handshake. *)
 let connect uri () =
   match Uri.scheme uri with
   | Some "redis" ->

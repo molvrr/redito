@@ -12,6 +12,7 @@ type connection = Plumbing.connection
 type message = Plumbing.message
 
 let connect = Plumbing.connect
+let serialize_message = Plumbing.serialize_message
 
 module Plumbing = struct
   include Plumbing

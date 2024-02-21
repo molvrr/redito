@@ -137,7 +137,7 @@ let parse_redis_reply r () =
     match state with
     | Angstrom.Buffered.Done (_, v) -> Ok v
     | Angstrom.Buffered.Partial continue ->
-      let* str = Bytestring.with_bytes (fun buf -> IO.read ~buf r) in
+      let* str = Bytestring.with_bytes (fun buf -> IO.read r buf) in
       helper @@ continue @@ `String (Bytestring.to_string str)
     | Angstrom.Buffered.Fail _ -> Error `Response_parsing_error
   in

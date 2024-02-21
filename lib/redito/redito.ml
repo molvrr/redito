@@ -21,7 +21,7 @@ module Plumbing = struct
     let writer = conn.writer in
     let reader = conn.reader in
     let serialized_msg = Plumbing.serialize_message cmd in
-    match IO.write_all ~buf:(Bytes.of_string serialized_msg) writer with
+    match IO.write_all ~buf:serialized_msg writer with
     | Ok () -> Plumbing.parse_redis_reply reader ()
     | Error _ as err -> err
   ;;
